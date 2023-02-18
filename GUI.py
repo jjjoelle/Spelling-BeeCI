@@ -2,23 +2,96 @@ from psychopy import visual, event, core, gui, data, logging
 from psychopy.visual import textbox
 
 win = visual.Window(
-    size=[400, 400],
+    size=[600, 600],
     units="pix",
     fullscr=False,
     color=[1, 1, 1]
 )
 
-rect = visual.Polygon(
+center = visual.Polygon(
     win=win,
     edges=6,
-    radius=100,
+    radius=60,
     units="pix",
     lineWidth=10,
-    lineColor=[-1,-1,-1],
-    ori=30.0
+    ori=30.0,
+    fillColor='#FFD700'
+)
+above = visual.Polygon(
+    win=win,
+    edges=6,
+    radius=60,
+    units="pix",
+    lineWidth=10,
+    ori=30.0,
+    pos=(0,115),
+    fillColor= '#DCDCDC'
+
+)
+below = visual.Polygon(
+    win=win,
+    edges=6,
+    radius=60,
+    units="pix",
+    lineWidth=10,
+    ori=30.0,
+    pos=(0,-115),
+    fillColor= '#DCDCDC'
+
 )
 
-rect.draw()
+leftUp = visual.Polygon(
+    win=win,
+    edges=6,
+    radius=60,
+    units="pix",
+    lineWidth=10,
+    ori=30.0,
+    pos=(-100,58),
+    fillColor= '#DCDCDC'
+
+)
+leftDown = visual.Polygon(
+    win=win,
+    edges=6,
+    radius=60,
+    units="pix",
+    lineWidth=10,
+    ori=30.0,
+    pos=(-100,-58),
+    fillColor= '#DCDCDC'
+
+)
+rightUp = visual.Polygon(
+    win=win,
+    edges=6,
+    radius=60,
+    units="pix",
+    lineWidth=10,
+    ori=30.0,
+    pos=(100,58),
+    fillColor= '#DCDCDC'
+
+)
+rightDown = visual.Polygon(
+    win=win,
+    edges=6,
+    radius=60,
+    units="pix",
+    lineWidth=10,
+    ori=30.0,
+    pos=(100,-58),
+    fillColor= '#DCDCDC'
+
+)
+
+center.draw()
+above.draw()
+below.draw()
+leftUp.draw()
+leftDown.draw()
+rightUp.draw()
+rightDown.draw()
 
 win.flip()
 

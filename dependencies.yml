@@ -1,0 +1,13 @@
+name: buzzbuzz
+channels: 
+ - conda-forge
+ - bioconda
+ - nodefaults
+dependencies: 
+ - python>=3.10
+ - pandas 
+ - numpy
+ - scipy
+ - jupyterlab
+ - psychopy
+ - eeglabio

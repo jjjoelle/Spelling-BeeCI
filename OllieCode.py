@@ -10,14 +10,17 @@
 # Created......: 05May22 [ollie-d]
 # Last Modified: 05May22 [ollie-d]
 
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from psychopy import visual, event, core, gui, data, logging
+from psychopy.visual import textbox
+import random
 import numpy as np
-from itertools import count
-from collections import deque
+import datetime 
 import pylsl
+from collections import deque
+
 import threading
 import sys
+
 
 # Global variables (set in main)
 eeg_inlet = None
@@ -42,42 +45,55 @@ def lsl_thread():
         
         # Append sample if exists (from single channel, ch) to buffer
         if len(sample) > 0:
-            last_sample = sample[ch]
+            last_sample = sample
             buffer.append(last_sample)
     
 
-def animate(i):
-    global eeg_inlet
-    global x
-    global buffer
-    global line
-    ch = 3 # first channel
-    
-    # Read LSL, save only channel ch
-    #sample, times = eeg_inlet.pull_sample()
-    
-    # Append sample to buffer if exists
-    #if len(sample) > 0:
-    #    buffer.append(sample[ch])
+def drawPrompt(prompt, t, window, window_size): 
+    radius = window_size / 3
+    height = radius * 2 
+    prompt_size = radius / 3
+    times = list()
 
-    # Set line's data rather than re-plotting
-    line.set_ydata(buffer)
-    return line,
-    
-    
-def animate2(i):
-    # This function will swap colors depending on polarity
-    global eeg_inlet
-    global x
-    global buffer
-    global ax
-    global last_sample
-    ch = 0 # first channel
-    
-    if last_sample >= 0:
-        ax.set_facecolor('gray')
-    else:
-        ax.set_facecolor('white')
+    circle = visual.Circle(window, radius=radius, edges=100, fillColor='white', lineColor='black', lineWidth=3)
+    exclamation_mark = visual.TextStim(window, text='!', pos=[0, 0], height=radius, color='red')
+    rectangle = visual.Rect(window, width=height, height=height, fillColor='white', lineColor='black')
+    prompt = visual.TextStim(window, text=prompt, pos=[0, 0], height=prompt_size, color='black')
+    stopSign = visual.Polygon(window, edges=8, radius=radius, units='pix', ori=22.5, pos=[0,0], fillColor='red')
+    stop = visual.TextStim(window, text='STOP', pos=[0, 0], height=prompt_size, color='white')
+
+    circle.draw()
+    exclamation_mark.draw()
+    window.flip()
+    core.wait(1.5)
+    #window.flip()
+    rectangle.draw()
+    prompt.draw()
+    data, timestamp = eeg_inlet.pull_sample()
+    times.append(data, timestamp)
+    window.flip()
+    core.wait(t)
+    #window.flip()
+    stopSign.draw()
+    stop.draw()
+    data, timestamp = eeg_inlet.pull_sample()
+    times.append(data, timestamp)
+    window.flip()
+    core.wait(1)
+    return times
+
+def repeatTrials(trials, prompts, trial_duration, window, window_size):
+    ordered_prompts = [''] * trials
+    random.choice(prompts)
+    outputs = dict()
+    for i in range(trials):
+        ordered_prompts[i] = random.choice(prompts)
+        core.wait(2)
+        times = drawPrompt(ordered_prompts[i], trial_duration, window, window_size)
+        window.flip()
+        outputs['trial_'+str(i)] = times
+    outputs['prompts'] = ordered_prompts
+    return outputs
 
 
 if __name__ == "__main__":
@@ -98,11 +114,6 @@ if __name__ == "__main__":
     # Create an x-axis of spaced values in seconds
     x = np.linspace(0, buffer_len*dt_ms, num=buffer_len)
     
-    # Initialize line / plot
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    ax.set_ylim([-200, 200])
-    line, = ax.plot(x, np.zeros_like(x))
 
     # Initiate LSL streams and create inlets
     eeg_streams = pylsl.resolve_stream('type', 'EEG')
@@ -115,5 +126,21 @@ if __name__ == "__main__":
     lsl.start()
     
     # Launch animation
-    anim = FuncAnimation(fig, func=animate, interval=int(round(dt_ms)))
-    plt.show()
+    win = visual.Window(size=[600, 600], color='black', units='pix', fullscr=False)
+
+    prompts = ['Right Fist', 'Left Fist', 'Right Arm', 'Left Arm']
+    output = repeatTrials(2, prompts, 3, win, 600)
+    win.close()
+
+    prefix = datetime.datetime.now().isoformat() + ".txt"
+    out_path = "DataCollection/outputs/MI_metadata_" + prefix
+    open(out_path, 'w').write('')
+    with open(out_path,"a") as fo:
+        for key,val in output.items():
+            line = f"{key}: {val}\n"
+            fo.write(line)
+
+    out_path = "DataCollection/outputs/MI_collection_" + prefix
+    open(out_path, 'w').write('')
+    with open(out_path,"a") as fo:
+        fo.write(buffer)

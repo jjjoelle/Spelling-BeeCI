@@ -6,6 +6,7 @@ channels:
 dependencies: 
  - python=3.8
  - pandas 
+ - liblsl
  - numpy
  - scipy
  - jupyterlab
@@ -20,3 +21,4 @@ dependencies:
   - pyparallel; platform_system != "Windows"
   - SoundFile; platform_system == "Windows"
   - websocket_client
+  - pylsl

@@ -24,7 +24,7 @@ above = visual.Polygon(
     units="pix",
     lineWidth=10,
     ori=30.0,
-    pos=(0,115),
+    pos=(0,140),
     fillColor= '#DCDCDC'
 
 )
@@ -35,7 +35,7 @@ below = visual.Polygon(
     units="pix",
     lineWidth=10,
     ori=30.0,
-    pos=(0,-115),
+    pos=(0,-140),
     fillColor= '#DCDCDC'
 
 )
@@ -47,7 +47,7 @@ leftUp = visual.Polygon(
     units="pix",
     lineWidth=10,
     ori=30.0,
-    pos=(-100,58),
+    pos=(-118,65),
     fillColor= '#DCDCDC'
 
 )
@@ -58,7 +58,7 @@ leftDown = visual.Polygon(
     units="pix",
     lineWidth=10,
     ori=30.0,
-    pos=(-100,-58),
+    pos=(-118,-65),
     fillColor= '#DCDCDC'
 
 )
@@ -69,7 +69,7 @@ rightUp = visual.Polygon(
     units="pix",
     lineWidth=10,
     ori=30.0,
-    pos=(100,58),
+    pos=(118,65),
     fillColor= '#DCDCDC'
 
 )
@@ -80,7 +80,7 @@ rightDown = visual.Polygon(
     units="pix",
     lineWidth=10,
     ori=30.0,
-    pos=(100,-58),
+    pos=(118,-65),
     fillColor= '#DCDCDC'
 
 )

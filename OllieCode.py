@@ -70,14 +70,14 @@ def drawPrompt(prompt, t, window, window_size):
     rectangle.draw()
     prompt.draw()
     data, timestamp = eeg_inlet.pull_sample()
-    times.append(data, timestamp)
+    times.append(timestamp)
     window.flip()
     core.wait(t)
     #window.flip()
     stopSign.draw()
     stop.draw()
     data, timestamp = eeg_inlet.pull_sample()
-    times.append(data, timestamp)
+    times.append(timestamp)
     window.flip()
     core.wait(1)
     return times
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     
     # Launch LSL thread
     lsl = threading.Thread(target = lsl_thread, args = ())
-    lsl.setDaemon(False)
+    lsl.setDaemon(False) #turn into True 
     lsl.start()
     
     # Launch animation
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     out_path = "DataCollection/outputs/MI_collection_" + prefix
     open(out_path, 'w').write('')
     with open(out_path,"a") as fo:
-        fo.write(buffer)
+        fo.write(str(buffer))

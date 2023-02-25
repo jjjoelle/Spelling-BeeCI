@@ -46,6 +46,7 @@ def drawPrompt(prompt, t, window, window_size):
     radius = window_size / 3
     height = radius * 2 
     prompt_size = radius / 3
+    times = list()
 
     circle = visual.Circle(window, radius=radius, edges=100, fillColor='white', lineColor='black', lineWidth=3)
     exclamation_mark = visual.TextStim(window, text='!', pos=[0, 0], height=radius, color='red')
@@ -61,13 +62,18 @@ def drawPrompt(prompt, t, window, window_size):
     #window.flip()
     rectangle.draw()
     prompt.draw()
+    data, timestamp = eeg_inlet.pull_sample()
+    times.append(timestamp)
     window.flip()
     core.wait(t)
     #window.flip()
     stopSign.draw()
     stop.draw()
+    data, timestamp = eeg_inlet.pull_sample()
+    times.append(timestamp)
     window.flip()
     core.wait(1)
+    return times
 
 
 def repeatTrials(trials, prompts, trial_duration, window, window_size):
@@ -75,19 +81,18 @@ def repeatTrials(trials, prompts, trial_duration, window, window_size):
     random.choice(prompts)
     outputs = dict()
     for i in range(trials):
-        round = list()
         ordered_prompts[i] = random.choice(prompts)
         core.wait(2)
-        round.append(datetime.datetime.now().strftime('%H:%M:%S'))
-        drawPrompt(ordered_prompts[i], trial_duration, window, window_size)
-        round.append(datetime.datetime.now().strftime('%H:%M:%S'))
+        times = drawPrompt(ordered_prompts[i], trial_duration, window, window_size)
         window.flip()
-        outputs['trial_'+str(i)] = round
+        outputs['trial_'+str(i)] = times
     outputs['prompts'] = ordered_prompts
     return outputs
 
 
 if __name__ == "__main__":
+    # MAKE SURE YOU HAVE AN LSL STREAM RUNNING
+    # (for this example I use synthetic data from OpenBCI GUI)
 
     # Sampling variables
     fs = 250.          # sampling rate (Hz)
@@ -95,10 +100,14 @@ if __name__ == "__main__":
     dt_ms = dt * 1000. # time between samples (ms)
     buffer_len = 250   # num samples to store in buffer
     buffer = deque(maxlen=buffer_len)
-
-
+    
+    # Fill buffer with 0s
+    for i in range(buffer_len):
+        buffer.append(0.)
+    
     # Create an x-axis of spaced values in seconds
     x = np.linspace(0, buffer_len*dt_ms, num=buffer_len)
+    
 
     # Initiate LSL streams and create inlets
     eeg_streams = pylsl.resolve_stream('type', 'EEG')
@@ -107,19 +116,25 @@ if __name__ == "__main__":
     
     # Launch LSL thread
     lsl = threading.Thread(target = lsl_thread, args = ())
-    lsl.setDaemon(False)
+    lsl.setDaemon(False) #turn into True 
     lsl.start()
     
-
+    # Launch animation
     win = visual.Window(size=[600, 600], color='black', units='pix', fullscr=False)
 
     prompts = ['Right Fist', 'Left Fist', 'Right Arm', 'Left Arm']
     output = repeatTrials(2, prompts, 3, win, 600)
     win.close()
 
-    out_path = "DataCollection/outputs/MI_collection_" + datetime.datetime.now().isoformat() + ".txt"
+    prefix = datetime.datetime.now().isoformat() + ".txt"
+    out_path = "DataCollection/outputs/MI_metadata_" + prefix
     open(out_path, 'w').write('')
     with open(out_path,"a") as fo:
         for key,val in output.items():
             line = f"{key}: {val}\n"
             fo.write(line)
+
+    out_path = "DataCollection/outputs/MI_collection_" + prefix
+    open(out_path, 'w').write('')
+    with open(out_path,"a") as fo:
+        fo.write(str(buffer))

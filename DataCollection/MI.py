@@ -11,11 +11,10 @@ import sys
 
 # Global variables (set in main)
 eeg_inlet = None
-x = None
 buffer = None
-line = None
-ax = None
 last_sample = 0
+prefix = ''
+file_paths = dict()
 
 def lsl_thread():
     global buffer
@@ -29,10 +28,9 @@ def lsl_thread():
     # Read LSL
     while True:
         sample, times = eeg_inlet.pull_sample()
-        
         # Append sample if exists (from single channel, ch) to buffer
         if len(sample) > 0:
-            last_sample = sample[ch]
+            last_sample = sample
             buffer.append(last_sample)
     
 # Function 1: print a prompt for X seconds 
@@ -42,7 +40,11 @@ def lsl_thread():
 #   -> find permutations between 2 list or literally just go in order of list
 #   -> x time 
 
-def drawPrompt(prompt, t, window, window_size): 
+def drawPrompt(prompt_text, t, window, window_size): 
+    global file_paths
+    global buffer
+    global eeg_inlet
+
     radius = window_size / 3
     height = radius * 2 
     prompt_size = radius / 3
@@ -51,41 +53,61 @@ def drawPrompt(prompt, t, window, window_size):
     circle = visual.Circle(window, radius=radius, edges=100, fillColor='white', lineColor='black', lineWidth=3)
     exclamation_mark = visual.TextStim(window, text='!', pos=[0, 0], height=radius, color='red')
     rectangle = visual.Rect(window, width=height, height=height, fillColor='white', lineColor='black')
-    prompt = visual.TextStim(window, text=prompt, pos=[0, 0], height=prompt_size, color='black')
+    prompt = visual.TextStim(window, text=prompt_text, pos=[0, 0], height=prompt_size, color='black')
     stopSign = visual.Polygon(window, edges=8, radius=radius, units='pix', ori=22.5, pos=[0,0], fillColor='red')
     stop = visual.TextStim(window, text='STOP', pos=[0, 0], height=prompt_size, color='white')
 
+    # MI incoming
     circle.draw()
     exclamation_mark.draw()
     window.flip()
     core.wait(1.5)
-    #window.flip()
+
+    # begin MI
     rectangle.draw()
     prompt.draw()
     data, timestamp = eeg_inlet.pull_sample()
     times.append(timestamp)
     window.flip()
     core.wait(t)
-    #window.flip()
+    path = prefix + "_" + file_paths[prompt_text] + ".txt"  
+    with open(path,"a") as fo:
+        for i in range(len(buffer)):
+            fo.write(str(buffer.popleft())[1:-1])
+            fo.write('\n')
+    
+    # stop MI
     stopSign.draw()
     stop.draw()
     data, timestamp = eeg_inlet.pull_sample()
     times.append(timestamp)
     window.flip()
     core.wait(1)
+
     return times
 
 
 def repeatTrials(trials, prompts, trial_duration, window, window_size):
+    global buffer
+
     ordered_prompts = [''] * trials
     random.choice(prompts)
     outputs = dict()
     for i in range(trials):
         ordered_prompts[i] = random.choice(prompts)
-        core.wait(2)
+
+        core.wait(trial_duration)
+        # record no MI
+        path = prefix + "_NOMI.txt"
+        with open(path,"a") as fo:
+            for j in range(len(buffer)):
+                fo.write(str(buffer.popleft())[1:-1])
+                fo.write('\n')
+        # act and record MI
         times = drawPrompt(ordered_prompts[i], trial_duration, window, window_size)
         window.flip()
         outputs['trial_'+str(i)] = times
+
     outputs['prompts'] = ordered_prompts
     return outputs
 
@@ -98,17 +120,22 @@ if __name__ == "__main__":
     fs = 250.          # sampling rate (Hz)
     dt = 1. / fs       # time between samples (s)
     dt_ms = dt * 1000. # time between samples (ms)
+    trial_duration = 4
     buffer_len = 250   # num samples to store in buffer
+    buffer_len = buffer_len * trial_duration
     buffer = deque(maxlen=buffer_len)
+
+    # set up file info 
+    file_paths = {'Right Fist': 'MIRF', 'Left Fist': 'MILF','Right Arm': 'MIRA', 'Left Arm': 'MILA'}
+    prefix = prefix = 'DataCollection/outputs/MI/' + datetime.datetime.now().isoformat() + '_MI'
+    out_path = f"{prefix}_metadata.txt"
+    open(out_path, 'w').write('')
+
     
     # Fill buffer with 0s
     for i in range(buffer_len):
-        buffer.append(0.)
-    
-    # Create an x-axis of spaced values in seconds
-    x = np.linspace(0, buffer_len*dt_ms, num=buffer_len)
-    
-
+        buffer.append([0.]*8)
+        
     # Initiate LSL streams and create inlets
     eeg_streams = pylsl.resolve_stream('type', 'EEG')
     eeg_inlet = pylsl.stream_inlet(eeg_streams[0], recover = False)
@@ -116,25 +143,16 @@ if __name__ == "__main__":
     
     # Launch LSL thread
     lsl = threading.Thread(target = lsl_thread, args = ())
-    lsl.setDaemon(False) #turn into True 
+    lsl.setDaemon(True) #turn into True 
     lsl.start()
     
-    # Launch animation
+    # show prompts on screen
     win = visual.Window(size=[600, 600], color='black', units='pix', fullscr=False)
-
     prompts = ['Right Fist', 'Left Fist', 'Right Arm', 'Left Arm']
-    output = repeatTrials(2, prompts, 3, win, 600)
+    output = repeatTrials(2, prompts, trial_duration, win, 600)
     win.close()
 
-    prefix = datetime.datetime.now().isoformat() + ".txt"
-    out_path = "DataCollection/outputs/MI_metadata_" + prefix
-    open(out_path, 'w').write('')
     with open(out_path,"a") as fo:
         for key,val in output.items():
             line = f"{key}: {val}\n"
             fo.write(line)
-
-    out_path = "DataCollection/outputs/MI_collection_" + prefix
-    open(out_path, 'w').write('')
-    with open(out_path,"a") as fo:
-        fo.write(str(buffer))

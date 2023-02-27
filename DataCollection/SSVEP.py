@@ -13,7 +13,7 @@ import sys
 eeg_inlet = None
 buffer = None
 last_sample = 0
-refresh_rate = 60.0
+refresh_rate = 30.0
 prefix = None
 
 def lsl_thread():
@@ -46,10 +46,7 @@ def flash(gates, shape, win):
     for i in range(len(gates)):
         if gates[i] == 1:
             shape[0].draw()
-            win.flip()
-        else:
-            shape[1].draw()
-            win.flip()
+        win.flip()
 
 
 def trainingSequence(training, trial_length, ISI, window, size):

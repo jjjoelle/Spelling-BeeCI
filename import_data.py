@@ -1,5 +1,12 @@
 import numpy as np
 import pandas as pd
+import os
+
+def get_files(file_dir):
+    files = []
+    for file in sorted(os.listdir(file_dir)):
+        files.append(file_dir + file)
+    return files
 
 def read_file(file_name, col_names):
     eeg = pd.read_csv(file_name,header=None)

@@ -31,8 +31,8 @@ def lsl_thread():
         sample, times = eeg_inlet.pull_sample()
         # Append sample if exists (from single channel, ch) to buffer
         if len(sample) > 0:
-            #last_sample = sample
-            buffer.append(sample)
+            last_sample = sample
+            buffer.append(last_sample)
     
 # Function 1: print a prompt for X seconds 
 #   -> t: seconds
@@ -91,7 +91,6 @@ def drawPrompt(prompt_text, t, window, window_size):
 def repeatTrials(trials, prompts, trial_duration, window, window_size):
     global buffer
 
-    ordered_prompts = prompts * (int(trials/4))
     ordered_prompts = random.sample(prompts, trials)
     outputs = dict()
     for i in range(2):
@@ -135,7 +134,7 @@ if __name__ == "__main__":
 
     # set up file info 
     file_paths = {'Right Fist': 'MIRF', 'Left Fist': 'MILF', 'Swim': 'MISw', 'Typing': 'MITy'}
-    prefix = prefix = 'DataCollection/outputs/MI/sess{}/".format(session)' + datetime.datetime.now().isoformat() + '_MI'
+    prefix = prefix = 'DataCollection/outputs/MI/sess{}/'.format(session) + datetime.datetime.now().isoformat() + '_MI'
     out_path = f"{prefix}_metadata.txt"
     open(out_path, 'w').write('')
     out_path = f"{prefix}_baseline.txt"
@@ -157,10 +156,11 @@ if __name__ == "__main__":
     
     # show prompts on screen
     win = visual.Window(size=[600, 600], color='black', units='pix', fullscr=True)
-    prompts = ['Right Fist', 'Left Fist', 'Swim', 'Typing']
-    output = repeatTrials(8, prompts, trial_duration, win, 600)
+    prompts = ['Right Fist', 'Left Fist', 'Swim', 'Typing'] * 4
+    output = repeatTrials(16, prompts, trial_duration, win, 600)
     win.close()
 
+    out_path = f"{prefix}_metadata.txt"
     with open(out_path,"a") as fo:
         for key,val in output.items():
             line = f"{key}: {val}\n"

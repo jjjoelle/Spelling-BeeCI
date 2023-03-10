@@ -14,6 +14,7 @@ eeg_inlet = None
 buffer = None
 last_sample = 0
 refresh_rate = 60.0
+session = 2
 prefix = None
 
 def lsl_thread():
@@ -60,8 +61,16 @@ def trainingSequence(training, trial_length, ISI, window, size):
     shape = list()
     shape.append(on)
     shape.append(off)
-    core.wait(2)
-
+    
+    for i in range(2):
+        core.wait(trial_duration)
+        # record baseline
+        path = prefix + "_baseline.txt"
+        with open(path,"a") as fo:
+            for j in range(len(buffer)):
+                fo.write(str(buffer.popleft())[1:-1])
+                fo.write('\n')
+    
     for rate in training:
         #times = list()
         gates = getRate(rate, trial_length*60)
@@ -93,10 +102,11 @@ if __name__ == "__main__":
     buffer_len = buffer_len * training_duration
     buffer = deque(maxlen=buffer_len)
     
-    prefix = "DataCollection/outputs/SSVEP/" + datetime.datetime.now().isoformat()
+    prefix = "DataCollection/outputs/SSVEP/sess{}/".format(session) + datetime.datetime.now().isoformat()
     out_path = prefix + "_metadata.txt" 
     open(out_path, 'w').write('')
-
+    out_path = prefix + "_baseline.txt" 
+    open(out_path, 'w').write('')
 
      # Fill buffer with 0s
     for i in range(buffer_len):

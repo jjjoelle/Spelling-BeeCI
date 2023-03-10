@@ -14,7 +14,7 @@ eeg_inlet = None
 buffer = None
 last_sample = 0
 refresh_rate = 60.0
-session = 2
+session = 3
 prefix = None
 
 def lsl_thread():
@@ -31,8 +31,9 @@ def lsl_thread():
         sample, times = eeg_inlet.pull_sample()
         # Append sample if exists (from single channel, ch) to buffer
         if len(sample) > 0:
-            last_sample = sample
-            buffer.append(last_sample)
+            out_path = prefix + "_data.txt"
+            with open(out_path,"a") as fo:
+                fo.write(f"{str(times)}, {str(sample)[1:-1]}\n")
     
 
 
@@ -63,31 +64,35 @@ def trainingSequence(training, trial_length, ISI, window, size):
     shape.append(off)
     
     for i in range(2):
-        core.wait(trial_duration)
-        # record baseline
-        path = prefix + "_baseline.txt"
+        data,timestamp1 = eeg_inlet.pull_sample()
+        core.wait(ISI)
+    # record baseline
+    data,timestamp2 = eeg_inlet.pull_sample()
+    output['baseline'] = [timestamp1, timestamp2]
+
+    ''' path = prefix + "_baseline.txt"
         with open(path,"a") as fo:
             for j in range(len(buffer)):
                 fo.write(str(buffer.popleft())[1:-1])
-                fo.write('\n')
+                fo.write('\n')'''
     
     for rate in training:
-        #times = list()
+        times = list()
         gates = getRate(rate, trial_length*60)
-        #data,timestamp = eeg_inlet.pull_sample()
-        #times.append(timestamp)
+        data,timestamp = eeg_inlet.pull_sample()
+        times.append(timestamp)
         flash(gates, shape, window)
-        path = prefix + "_{:.2f}".format(rate) + "Hz.txt"  
+        '''path = prefix + "_{:.2f}".format(rate) + "Hz.txt"  
         with open(path,"a") as fo:
             for i in range(len(buffer)):
                 fo.write(str(buffer.popleft())[1:-1])
-                fo.write('\n')
+                fo.write('\n')'''
 
-        #data,timestamp = eeg_inlet.pull_sample()
-        #times.append(timestamp)
+        data,timestamp = eeg_inlet.pull_sample()
+        times.append(timestamp)
         window.flip()
         core.wait(ISI)
-        #output[rate] = times
+        output[rate] = times
     return output
 
 
@@ -137,7 +142,9 @@ if __name__ == "__main__":
     output = trainingSequence(training, training_duration, 5, win, 800)
     win.close()
 
-
+    out_path = prefix + "_metadata.txt"
     open(out_path, 'w').write('')
     with open(out_path,"a") as fo:
-        fo.write(str(training))
+        fo.write(f"rate: start_time, end_time\n")
+        for k,v in output.items():
+            fo.write(f"{str(k)}: {str(v)[1:-1]}\n")

@@ -14,6 +14,7 @@ eeg_inlet = None
 buffer = None
 last_sample = 0
 prefix = ''
+session = 2
 file_paths = dict()
 
 def lsl_thread():
@@ -30,8 +31,8 @@ def lsl_thread():
         sample, times = eeg_inlet.pull_sample()
         # Append sample if exists (from single channel, ch) to buffer
         if len(sample) > 0:
-            last_sample = sample
-            buffer.append(last_sample)
+            #last_sample = sample
+            buffer.append(sample)
     
 # Function 1: print a prompt for X seconds 
 #   -> t: seconds
@@ -90,12 +91,19 @@ def drawPrompt(prompt_text, t, window, window_size):
 def repeatTrials(trials, prompts, trial_duration, window, window_size):
     global buffer
 
-    ordered_prompts = [''] * trials
-    random.choice(prompts)
+    ordered_prompts = prompts * (int(trials/4))
+    ordered_prompts = random.sample(prompts, trials)
     outputs = dict()
+    for i in range(2):
+        core.wait(trial_duration)
+        # record baseline
+        path = prefix + "_baseline.txt"
+        with open(path,"a") as fo:
+            for j in range(len(buffer)):
+                fo.write(str(buffer.popleft())[1:-1])
+                fo.write('\n')
+    
     for i in range(trials):
-        ordered_prompts[i] = random.choice(prompts)
-
         core.wait(trial_duration)
         # record no MI
         path = prefix + "_NOMI.txt"
@@ -120,17 +128,18 @@ if __name__ == "__main__":
     fs = 250.          # sampling rate (Hz)
     dt = 1. / fs       # time between samples (s)
     dt_ms = dt * 1000. # time between samples (ms)
-    trial_duration = 4
+    trial_duration = 5
     buffer_len = 250   # num samples to store in buffer
     buffer_len = buffer_len * trial_duration
     buffer = deque(maxlen=buffer_len)
 
     # set up file info 
-    file_paths = {'Right Fist': 'MIRF', 'Left Fist': 'MILF','Right Arm': 'MIRA', 'Left Arm': 'MILA'}
-    prefix = prefix = 'DataCollection/outputs/MI/' + datetime.datetime.now().isoformat() + '_MI'
+    file_paths = {'Right Fist': 'MIRF', 'Left Fist': 'MILF', 'Swim': 'MISw', 'Typing': 'MITy'}
+    prefix = prefix = 'DataCollection/outputs/MI/sess{}/".format(session)' + datetime.datetime.now().isoformat() + '_MI'
     out_path = f"{prefix}_metadata.txt"
     open(out_path, 'w').write('')
-
+    out_path = f"{prefix}_baseline.txt"
+    open(out_path, 'w').write('')
     
     # Fill buffer with 0s
     for i in range(buffer_len):
@@ -147,12 +156,14 @@ if __name__ == "__main__":
     lsl.start()
     
     # show prompts on screen
-    win = visual.Window(size=[600, 600], color='black', units='pix', fullscr=False)
-    prompts = ['Right Fist', 'Left Fist', 'Right Arm', 'Left Arm']
-    output = repeatTrials(2, prompts, trial_duration, win, 600)
+    win = visual.Window(size=[600, 600], color='black', units='pix', fullscr=True)
+    prompts = ['Right Fist', 'Left Fist', 'Swim', 'Typing']
+    output = repeatTrials(8, prompts, trial_duration, win, 600)
     win.close()
 
     with open(out_path,"a") as fo:
         for key,val in output.items():
             line = f"{key}: {val}\n"
             fo.write(line)
+
+

@@ -13,7 +13,7 @@ import sys
 eeg_inlet = None
 buffer = None
 last_sample = 0
-refresh_rate = 30.0
+refresh_rate = 60.0
 prefix = None
 
 def lsl_thread():
@@ -60,25 +60,25 @@ def trainingSequence(training, trial_length, ISI, window, size):
     shape = list()
     shape.append(on)
     shape.append(off)
+    core.wait(2)
 
     for rate in training:
-        times = list()
+        #times = list()
         gates = getRate(rate, trial_length*60)
-        data,timestamp = eeg_inlet.pull_sample()
-        times.append(timestamp)
+        #data,timestamp = eeg_inlet.pull_sample()
+        #times.append(timestamp)
         flash(gates, shape, window)
-        path = prefix + "_" + str(rate) + "Hz.txt"  
+        path = prefix + "_{:.2f}".format(rate) + "Hz.txt"  
         with open(path,"a") as fo:
             for i in range(len(buffer)):
                 fo.write(str(buffer.popleft())[1:-1])
                 fo.write('\n')
 
-        data,timestamp = eeg_inlet.pull_sample()
-        times.append(timestamp)
-        shape[1].draw()
+        #data,timestamp = eeg_inlet.pull_sample()
+        #times.append(timestamp)
         window.flip()
         core.wait(ISI)
-        output[rate] = times
+        #output[rate] = times
     return output
 
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     dt = 1. / fs       # time between samples (s)
     dt_ms = dt * 1000. # time between samples (ms)
     buffer_len = 250   # num samples to store in buffer
-    training_duration = 2
+    training_duration = 7
     buffer_len = buffer_len * training_duration
     buffer = deque(maxlen=buffer_len)
     
@@ -116,16 +116,18 @@ if __name__ == "__main__":
     win = visual.Window(
         size=[600, 600],
         units="pix",
-        fullscr=False,
+        fullscr=True,
         color='black'
     )
-    training = [8,10,12]
-    output = trainingSequence(training, training_duration, 2, win, 600)
+
+    training = np.arange(8.4,16,0.8)
+    rng = np.random.default_rng()
+    training = rng.permutation(training)
+
+    output = trainingSequence(training, training_duration, 5, win, 800)
     win.close()
 
 
     open(out_path, 'w').write('')
     with open(out_path,"a") as fo:
-        for key,val in output.items():
-            line = f"{key}: {val}\n"
-            fo.write(line)
+        fo.write(str(training))

@@ -66,11 +66,25 @@ def butter_band(chan_data, Fs, low, high):
     # Apply the filter to your EEG signal using filtfilt to avoid phase distortion
     filtered_data = filtfilt(b, 1, chan_data)
     return filtered_data
-
-def filter_eeg(eeg, col_names, Fs, low, high, notch_freq=60.0):
-    for chan in col_names:
+'''
+def filter_eeg(eeg, Fs, low, high, notch_freq=60.0):
+    for chan in eeg.columns:
         eeg[chan] = butter_notch(eeg[chan], Fs, notch_freq)
         eeg[chan] = butter_band(eeg[chan], Fs, low, high)
+
+def chop_ends(eeg, Fs, amt=0.5):
+    chopped_eeg = pd.DataFrame()
+    for chan in eeg.columns:
+        chopped_eeg[chan] = eeg[chan][int(Fs*amt):int(-Fs*amt)]
+    return chopped_eeg       
+'''
+def filter_eeg(eeg, Fs, low, high, notch_freq=60.0):
+    filtered_eeg = pd.DataFrame()
+    for chan in eeg.columns:
+        filtered_eeg[chan] = eeg[chan][int(Fs*0.5):int(-Fs*0.5)]
+        filtered_eeg[chan] = butter_notch(filtered_eeg[chan], Fs, notch_freq)
+        filtered_eeg[chan] = butter_band(filtered_eeg[chan], Fs, low, high)
+    return filtered_eeg
 
 def power_spectrum(data, Fs):
     freqs = np.fft.fftfreq(n=len(data[data.columns[0]]), d=1/Fs)
@@ -104,5 +118,5 @@ def process_eeg(eeg_file, col_names, openbci_file, low=1, high=50):
     if (idx < 0):
         return -1
     baseline_correct(openbci, column_names, eeg, col_names, idx)
-    filter_eeg(eeg, col_names, Fs, low, high)
-    return eeg, Fs
+    filtered_eeg = filter_eeg(eeg, Fs, low, high)
+    return filtered_eeg, Fs

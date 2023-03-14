@@ -45,10 +45,12 @@ def getRate(frequency, time_frames = 60):
     return (y + 1)/ 2
 
 def flash(gates, shape, win):
+    time = 1/60
     for i in range(len(gates)):
         if gates[i] == 1:
             shape[0].draw()
         win.flip()
+        core.wait(time)
 
 
 def trainingSequence(training, trial_length, ISI, window, size):
@@ -131,7 +133,7 @@ if __name__ == "__main__":
     win = visual.Window(
         size=[600, 600],
         units="pix",
-        fullscr=True,
+        fullscr=False,
         color='black'
     )
 

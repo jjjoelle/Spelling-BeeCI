@@ -19,10 +19,8 @@ def baseline_correct(openbci, names, eeg, col_names, idx):
     for i,chan in enumerate(col_names):
         baseline_mean = baseline_data[names[i+1]].mean()
         eeg[chan] = eeg[chan] - baseline_mean
-    #don't need to return since modified the dataframe
-    
+
 def butter_notch(chan_data, Fs=250, notch_freq=60.0):
-    '''
     # Define the filter parameters
     Q = 30.0
 
@@ -32,18 +30,10 @@ def butter_notch(chan_data, Fs=250, notch_freq=60.0):
 
     # Apply the filter to the EEG data
     notched_data = filtfilt(b, a, chan_data)
-    '''
-    nyquist_freq = 0.5 * Fs
-    numtaps = 101
-    b = firwin(numtaps, notch_freq / nyquist_freq, window='hamming')
-    notched_data = filtfilt(b, 1, chan_data)
-    # Scale the filtered signal to remove any DC offset
-    notched_data = notched_data - np.mean(notched_data)
     return notched_data
 
 def butter_band(chan_data, Fs, low, high):
     # Define the filter parameters
-    '''
     nyquist_freq = 0.5 * Fs
     lowcut = low / nyquist_freq
     highcut = high / nyquist_freq
@@ -54,7 +44,19 @@ def butter_band(chan_data, Fs, low, high):
 
     # Apply the filter to the EEG data
     filtered_data = filtfilt(b, a, chan_data)
-    '''
+    return filtered_data
+
+def fir_notch(chan_data, Fs=250, notch_freq=60.0):
+    nyquist_freq = 0.5 * Fs
+    numtaps = 101
+    b = firwin(numtaps, notch_freq / nyquist_freq, window='hamming')
+    notched_data = filtfilt(b, 1, chan_data)
+    # Scale the filtered signal to remove any DC offset
+    notched_data = notched_data - np.mean(notched_data)
+    return notched_data
+
+def fir_band(chan_data, Fs, low, high):
+    # Define the filter parameters
     # Define filter parameters
     nyquist_freq = 0.5 * Fs
     cutoff_freqs = [low, high]
@@ -81,8 +83,8 @@ def chop_ends(eeg, Fs, amt=0.5):
 def filter_eeg(eeg, Fs, low, high, notch_freq=60.0):
     filtered_eeg = pd.DataFrame()
     for chan in eeg.columns:
-        filtered_eeg[chan] = eeg[chan][int(Fs*0.5):int(-Fs*0.5)]
-        filtered_eeg[chan] = butter_notch(filtered_eeg[chan], Fs, notch_freq)
+        #filtered_eeg[chan] = eeg[chan][int(Fs*0.5):int(-Fs*0.5)]
+        filtered_eeg[chan] = butter_notch(eeg[chan], Fs, notch_freq)
         filtered_eeg[chan] = butter_band(filtered_eeg[chan], Fs, low, high)
     return filtered_eeg
 
@@ -93,25 +95,8 @@ def power_spectrum(data, Fs):
         ft = np.fft.fft(data[chan])
         ps[chan] = 10*np.log10(np.abs(ft)**2)
     return freqs, ps
-
-def plot_channel(data, channel, Fs, start=0, end=5):
-    dt = 1/Fs
-    chan_data = list(data[channel])
-    npts = len(chan_data)
-    times = np.arange(npts)*dt
-    plt.xlabel('Times (s)')
-    plt.ylabel('Voltage (uV)')
-    plt.title(channel)
-    plt.plot(times[int(start*Fs):int(end*Fs)], chan_data[int(start*Fs):int(end*Fs)])
-
-def plot_power(freqs, ps, channel, Fs, max_freq):
-    plt.plot(freqs, ps[channel]);
-    #plt.yscale('log');
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Power (dB)')
-    plt.xlim(0,max_freq);
     
-def process_eeg(eeg_file, col_names, openbci_file, low=1, high=50):
+def process_eeg(eeg_file, col_names, openbci_file, low=1, high=100):
     eeg = read_file(eeg_file, col_names)
     openbci, num_channels, Fs, column_names = read_openbci_file(openbci_file)
     idx = get_idx(openbci, column_names, eeg, col_names)

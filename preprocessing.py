@@ -14,11 +14,18 @@ def get_idx(openbci, names, eeg, col_names):
         idx = eeg_start.index[0]
     return idx
 
-def baseline_correct(openbci, names, eeg, col_names, idx):
+def baseline_correct_openbci(openbci, names, eeg, idx):
     baseline_data = openbci.iloc[idx-1000:idx]
-    for i,chan in enumerate(col_names):
+    for i,chan in enumerate(eeg.columns):
         baseline_mean = baseline_data[names[i+1]].mean()
         eeg[chan] = eeg[chan] - baseline_mean
+
+def baseline_correct(eeg_data, baseline_data):
+    bc_df = pd.DataFrame()
+    for chan in eeg_data.columns:
+        bc_df[chan] = eeg_data[chan] - baseline_data[chan].mean()
+    return bc_df
+        
 
 def butter_notch(chan_data, Fs=250, notch_freq=60.0):
     # Define the filter parameters
@@ -88,11 +95,11 @@ def filter_eeg(eeg, Fs, low, high, notch_freq=60.0):
         filtered_eeg[chan] = butter_band(filtered_eeg[chan], Fs, low, high)
     return filtered_eeg
 
-def power_spectrum(data, Fs):
-    freqs = np.fft.fftfreq(n=len(data[data.columns[0]]), d=1/Fs)
+def power_spectrum(eeg, Fs):
+    freqs = np.fft.fftfreq(n=len(eeg[eeg.columns[0]]), d=1/Fs)
     ps = {}
-    for chan in data.columns:
-        ft = np.fft.fft(data[chan])
+    for chan in eeg.columns:
+        ft = np.fft.fft(eeg[chan])
         ps[chan] = 10*np.log10(np.abs(ft)**2)
     return freqs, ps
     
@@ -102,6 +109,6 @@ def process_eeg(eeg_file, col_names, openbci_file, low=1, high=100):
     idx = get_idx(openbci, column_names, eeg, col_names)
     if (idx < 0):
         return -1
-    baseline_correct(openbci, column_names, eeg, col_names, idx)
+    baseline_correct_openbci(openbci, column_names, eeg, col_names, idx)
     filtered_eeg = filter_eeg(eeg, Fs, low, high)
     return filtered_eeg, Fs

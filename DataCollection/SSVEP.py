@@ -14,7 +14,7 @@ eeg_inlet = None
 buffer = None
 last_sample = 0
 refresh_rate = 60.0
-session = 3
+session = 4
 prefix = None
 
 def lsl_thread():
@@ -111,8 +111,6 @@ if __name__ == "__main__":
     
     prefix = "DataCollection/outputs/SSVEP/sess{}/".format(session) + datetime.datetime.now().isoformat()
     out_path = prefix + "_metadata.txt" 
-    open(out_path, 'w').write('')
-    out_path = prefix + "_baseline.txt" 
     open(out_path, 'w').write('')
 
      # Fill buffer with 0s

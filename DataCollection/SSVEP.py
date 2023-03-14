@@ -147,5 +147,5 @@ if __name__ == "__main__":
     with open(out_path,"a") as fo:
         fo.write(f"rate: start_time, end_time\n")
         for k,v in output.items():
-            fo.write("{:.2f}: {}\n".format(k, v[1:-1])
+            fo.write("{:.2f}: {}\n".format(k, v[1:-1]))
             #fo.write(f"{str(k)}: {str(v)[1:-1]}\n")

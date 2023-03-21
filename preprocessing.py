@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 from import_data import *
-from scipy.signal import butter, iirnotch, firwin, filtfilt
+from scipy.signal import butter, iirnotch, firwin, filtfilt, periodogram
 
 def get_idx(openbci, names, eeg, col_names):
     val1 = eeg[col_names[0]].iloc[0]
@@ -44,7 +44,7 @@ def butter_band(chan_data, Fs, low, high):
     nyquist_freq = 0.5 * Fs
     lowcut = low / nyquist_freq
     highcut = high / nyquist_freq
-    order = 4
+    order = 2
 
     # Create the filter coefficients
     b, a = butter(order, [lowcut, highcut], btype='band')
@@ -75,26 +75,15 @@ def fir_band(chan_data, Fs, low, high):
     # Apply the filter to your EEG signal using filtfilt to avoid phase distortion
     filtered_data = filtfilt(b, 1, chan_data)
     return filtered_data
-'''
-def filter_eeg(eeg, Fs, low, high, notch_freq=60.0):
-    for chan in eeg.columns:
-        eeg[chan] = butter_notch(eeg[chan], Fs, notch_freq)
-        eeg[chan] = butter_band(eeg[chan], Fs, low, high)
 
-def chop_ends(eeg, Fs, amt=0.5):
-    chopped_eeg = pd.DataFrame()
-    for chan in eeg.columns:
-        chopped_eeg[chan] = eeg[chan][int(Fs*amt):int(-Fs*amt)]
-    return chopped_eeg       
-'''
 def filter_eeg(eeg, Fs, low, high, notch_freq=60.0):
     filtered_eeg = pd.DataFrame()
     for chan in eeg.columns:
         #filtered_eeg[chan] = eeg[chan][int(Fs*0.5):int(-Fs*0.5)]
         filtered_eeg[chan] = butter_notch(eeg[chan], Fs, notch_freq)
-        filtered_eeg[chan] = butter_band(filtered_eeg[chan], Fs, low, high)
+        filtered_eeg[chan] = fir_band(filtered_eeg[chan], Fs, low, high)
     return filtered_eeg
-
+'''
 def power_spectrum(eeg, Fs):
     freqs = np.fft.fftfreq(n=len(eeg[eeg.columns[0]]), d=1/Fs)
     ps = {}
@@ -102,7 +91,17 @@ def power_spectrum(eeg, Fs):
         ft = np.fft.fft(eeg[chan])
         ps[chan] = 10*np.log10(np.abs(ft)**2)
     return freqs, ps
-    
+'''
+def power_spectrum(eeg, Fs):
+    power = pd.DataFrame()
+    for channel in eeg.columns:
+        chan_vals = list(eeg[channel])
+        f, p = periodogram(chan_vals, Fs)
+        power[channel] = p
+        if 'freqs' not in power.columns:
+            power['freqs'] = f
+    return power
+
 def process_eeg(eeg_file, col_names, openbci_file, low=1, high=100):
     eeg = read_file(eeg_file, col_names)
     openbci, num_channels, Fs, column_names = read_openbci_file(openbci_file)

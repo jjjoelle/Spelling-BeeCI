@@ -1,3 +1,9 @@
+## ADJUST VARIABLES: 
+#   1. prefix: for storing files, change variable or add relevant directories
+#   2. session: relevant to prefix
+#   3. refresh rate
+#   
+
 from psychopy import visual, event, core, gui, data, logging
 from psychopy.visual import textbox
 import random
@@ -11,17 +17,12 @@ import sys
 
 # Global variables (set in main)
 eeg_inlet = None
-buffer = None
-last_sample = 0
 refresh_rate = 60.0
 session = 3
 prefix = None
 
 def lsl_thread():
-    global buffer
-    global last_sample
     global eeg_inlet
-    # All this will do is read from LSL and append to buffer when not empty
     ch = 0
     
     print('LSL thread awake'); sys.stdout.flush();
@@ -29,14 +30,16 @@ def lsl_thread():
     # Read LSL
     while True:
         sample, times = eeg_inlet.pull_sample()
-        # Append sample if exists (from single channel, ch) to buffer
-        if len(sample) > 0:
+        # Append sample if exists (from single channel, ch) to file
+        if len(sample[ch]) > 0:
             out_path = prefix + "_data.txt"
             with open(out_path,"a") as fo:
                 fo.write(f"{str(times)}, {str(sample)[1:-1]}\n")
     
 
-
+# Naknishi's APPROXIMATION METHOD 
+# frequency we are aproximating
+#
 def getRate(frequency, time_frames = 60):
     global refresh_rate
 
@@ -44,15 +47,23 @@ def getRate(frequency, time_frames = 60):
     y = signal.square(2 * np.pi * frequency * (indices/refresh_rate))
     return (y + 1)/ 2
 
+# function for SSVEP flashing using 
+# gates: from getRate() the approximation method
+# shape: psychopy object
+# win: window
 def flash(gates, shape, win):
-    time = 1/60
+    time = 1/refresh_rate
     for i in range(len(gates)):
         if gates[i] == 1:
             shape[0].draw()
         win.flip()
         core.wait(time)
 
-
+# training: list of frequencies
+# trial length: 
+# ISI: 
+# window: 
+# size: size of stimuli
 def trainingSequence(training, trial_length, ISI, window, size):
     global buffer
     global eeg_inlet
@@ -65,18 +76,13 @@ def trainingSequence(training, trial_length, ISI, window, size):
     shape.append(on)
     shape.append(off)
     
-    for i in range(2):
-        data,timestamp1 = eeg_inlet.pull_sample()
-        core.wait(ISI)
+    
+    data,timestamp1 = eeg_inlet.pull_sample()
+    core.wait(ISI)
+
     # record baseline
     data,timestamp2 = eeg_inlet.pull_sample()
-    output['baseline'] = [timestamp1, timestamp2]
-
-    ''' path = prefix + "_baseline.txt"
-        with open(path,"a") as fo:
-            for j in range(len(buffer)):
-                fo.write(str(buffer.popleft())[1:-1])
-                fo.write('\n')'''
+    output['0.000'] = [timestamp1, timestamp2]
     
     for rate in training:
         times = list()
@@ -84,11 +90,6 @@ def trainingSequence(training, trial_length, ISI, window, size):
         data,timestamp = eeg_inlet.pull_sample()
         times.append(timestamp)
         flash(gates, shape, window)
-        '''path = prefix + "_{:.2f}".format(rate) + "Hz.txt"  
-        with open(path,"a") as fo:
-            for i in range(len(buffer)):
-                fo.write(str(buffer.popleft())[1:-1])
-                fo.write('\n')'''
 
         data,timestamp = eeg_inlet.pull_sample()
         times.append(timestamp)
@@ -105,20 +106,10 @@ if __name__ == "__main__":
     dt = 1. / fs       # time between samples (s)
     dt_ms = dt * 1000. # time between samples (ms)
     buffer_len = 250   # num samples to store in buffer
-    training_duration = 7
-    buffer_len = buffer_len * training_duration
-    buffer = deque(maxlen=buffer_len)
+    training_duration = 5
     
     prefix = "DataCollection/outputs/SSVEP/sess{}/".format(session) + datetime.datetime.now().isoformat()
-    out_path = prefix + "_metadata.txt" 
-    open(out_path, 'w').write('')
-    out_path = prefix + "_baseline.txt" 
-    open(out_path, 'w').write('')
 
-     # Fill buffer with 0s
-    for i in range(buffer_len):
-        buffer.append([0.] * 8)
-    
 
     # Initiate LSL streams and create inlets
     eeg_streams = pylsl.resolve_stream('type', 'EEG')
@@ -127,7 +118,7 @@ if __name__ == "__main__":
     
     # Launch LSL thread
     lsl = threading.Thread(target = lsl_thread, args = ())
-    lsl.setDaemon(True) #turn into True 
+    lsl.setDaemon(True) 
     lsl.start()
 
     win = visual.Window(
@@ -141,7 +132,7 @@ if __name__ == "__main__":
     rng = np.random.default_rng()
     training = rng.permutation(training)
 
-    output = trainingSequence(training, training_duration, 5, win, 800)
+    output = trainingSequence(training, training_duration, 5, win, 600)
     win.close()
 
     out_path = prefix + "_metadata.txt"

@@ -331,6 +331,7 @@ if __name__ == "__main__":
     # Launch LSL thread
     lsl = threading.Thread(target = SSVEP_lsl_thread, args = (file, eeg_inlet))
     lsl.start()
+    #lsl.setDaemon(True) 
 
 
     window = visual.Window(
@@ -342,7 +343,7 @@ if __name__ == "__main__":
 
    
     a = int(window_size/4)
-    c = a / 2
+    c = int(a / 2)
     offset = 100
     positions = [(0,0+offset), 
         (0,a+offset), 
@@ -351,9 +352,12 @@ if __name__ == "__main__":
         (-1 * a, c + offset), 
         (a, -1 * c + offset), 
         (a, c + offset)]
+        # (-1 * a - offset, -offset),
+        # (0, -offset),
+        # (-1 * a + offset, -offset)
     #positions = [(0,0), (0,150), (0,-150), (-133,67), (-133,-67), (133,67), (133,-67)]
-    freqs =  [8.4,  9.2, 10.0 , 10.8, 11.6, 12.4, 13.2] #, 14.0 , 14.8, 15.6]
-    text = ["A", "B", "C", "D", "E", "F", "G"]
+    freqs =  [8.4,  9.2, 10.0 , 10.8, 11.6, 12.4, 13.2]#, 14.0 , 14.8, 15.6]
+    text = ["A", "B", "C", "D", "E", "F", "G"]#, 't', 't', 't']
     shapes = makeHexagonsOnMode(window, 600, positions)
     text_boxes = makeTextOnMode(window, 600, positions, text)
 
@@ -368,4 +372,5 @@ if __name__ == "__main__":
 
     mouse = event.Mouse(visible=True, newPos=None, win=window)
     repeatTrials(gates, window, 30, mouse)
+    # lsl.cancel()
     window.close()

@@ -13,7 +13,7 @@ def classify_freq(samp_list):
     df = f[1]-f[0]
     fv = calc_featvec(Pxx, df, freqs, band_width=0.4, num_harmonics=2)
     pred = pick_freq(fv,freqs)
-    return pred
+    return round(pred,1)
     
 def sample_to_df(samp_list):
     samp_arr = np.array(samp_list)

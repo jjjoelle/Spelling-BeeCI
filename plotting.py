@@ -14,10 +14,18 @@ def plot_channel(data, channel, Fs, start=0, end=5):
     plt.ylabel('Voltage (uV)')
     plt.title(channel)
     plt.plot(times[int(start*Fs):int(end*Fs)], chan_data[int(start*Fs):int(end*Fs)])
-
+'''
 def plot_power(freqs, ps, channel, Fs, max_freq):
     plt.plot(freqs, ps[channel]);
     #plt.yscale('log');
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power (dB)')
+    plt.xlim(0,max_freq);
+'''
+def plot_power(power,channel,max_freq):
+    x = list(power['freqs'])
+    y = list(power[channel])
+    plt.plot(x,y)
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Power (dB)')
     plt.xlim(0,max_freq);

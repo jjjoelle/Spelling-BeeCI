@@ -18,7 +18,7 @@ import sys
 # Global variables (set in main)
 eeg_inlet = None
 refresh_rate = 60.0
-session = 3
+session = 4
 prefix = None
 
 def lsl_thread():
@@ -109,6 +109,8 @@ if __name__ == "__main__":
     training_duration = 5
     
     prefix = "DataCollection/outputs/SSVEP/sess{}/".format(session) + datetime.datetime.now().isoformat()
+    out_path = prefix + "_metadata.txt" 
+    open(out_path, 'w').write('')
 
 
     # Initiate LSL streams and create inlets
@@ -140,4 +142,5 @@ if __name__ == "__main__":
     with open(out_path,"a") as fo:
         fo.write(f"rate: start_time, end_time\n")
         for k,v in output.items():
-            fo.write(f"{str(k)}: {str(v)[1:-1]}\n")
+            fo.write("{:.2f}: {}\n".format(k, v[1:-1]))
+            #fo.write(f"{str(k)}: {str(v)[1:-1]}\n")

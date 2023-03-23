@@ -102,12 +102,25 @@ def power_spectrum(eeg, Fs):
             power['freqs'] = f
     return power
 
-def process_eeg(eeg_file, col_names, openbci_file, low=1, high=100):
+def snip_eeg(eeg_df, Fs, snip_len, total_len):
+    npts = total_len * Fs
+    num_trials = int(len(list(eeg_df['Fp1']))/npts)
+    snip_df = pd.DataFrame()
+    for chan in eeg_df.columns:
+        chan_list = []
+        for i in range(num_trials):
+            chan_trial = list(eeg_df[chan])[npts*i:npts*i+int((total_len-snip_len)*Fs)]
+            chan_list += chan_trial
+        snip_df[chan] = chan_list
+    return snip_df
+
+def process_eeg(eeg_file, col_names, openbci_file, low=1, high=100, snip_len=0, total_len=5):
     eeg = read_file(eeg_file, col_names)
     openbci, num_channels, Fs, column_names = read_openbci_file(openbci_file)
     idx = get_idx(openbci, column_names, eeg, col_names)
     if (idx < 0):
         return -1
-    baseline_correct_openbci(openbci, column_names, eeg, col_names, idx)
-    filtered_eeg = filter_eeg(eeg, Fs, low, high)
+    baseline_correct_openbci(openbci, column_names, eeg, idx)
+    snipped_eeg = snip_eeg(eeg, Fs, snip_len, total_len)
+    filtered_eeg = filter_eeg(snipped_eeg, Fs, low, high)
     return filtered_eeg, Fs
